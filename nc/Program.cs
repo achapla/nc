@@ -7,11 +7,13 @@ class Program
     {
         if (args.Length < 3 || args[2].Length < 8)
         {
-            Console.WriteLine("Usage: NC.exe [encrypt|decrypt|e|d] [input-file|input-directory] [password]");
+            Console.WriteLine("Usage: NC.exe [encrypt|decrypt|e|d] [input-file|input-directory] [password] {output-directory}");
             return;
         }
 
         bool encrypt = args[0].StartsWith("e");
+        string password = args[2];
+
         string[] inputFiles;
         if (File.Exists(args[1]))
         {
@@ -21,8 +23,16 @@ class Program
         {
             inputFiles = Directory.GetFiles(args[1], "*.*");
         }
-        string outputPath = Path.Combine(Directory.GetCurrentDirectory(), "output");
-        string password = args[2];
+
+        string outputPath;
+        if (args.Length > 3)
+        {
+            outputPath = args[3];
+        }
+        else
+        {
+            outputPath = Path.Combine(Directory.GetCurrentDirectory(), "output");
+        }
 
         if (!Directory.Exists(outputPath))
         {
