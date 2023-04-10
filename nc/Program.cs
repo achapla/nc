@@ -7,11 +7,12 @@ class Program
     {
         if (args.Length < 3 || args[2].Length < 8)
         {
-            Console.WriteLine("Usage: NC.exe [encrypt|decrypt|e|d] [input-file|input-directory] [password] {output-directory}");
+            Console.WriteLine("Usage: NC.exe [encrypt|decrypt|e|d|verify|v] [input-file|input-directory] [password] {output-directory}");
             return;
         }
 
         bool encrypt = args[0].StartsWith("e");
+        bool decrypt = args[0].StartsWith("d");
         string password = args[2];
 
         string[] inputFiles;
@@ -45,9 +46,13 @@ class Program
             {
                 Encrypt(inputFile, outputPath, password);
             }
-            else
+            else if (decrypt)
             {
                 Decrypt(inputFile, outputPath, password);
+            }
+            else
+            {
+                Verify(inputFile, password);
             }
         }
     }
@@ -122,6 +127,43 @@ class Program
         {
             Console.WriteLine($"Cannot decrypt file '{inputFile}'.");
             Console.WriteLine($"Reason: {ex.Message}");
+        }
+    }
+
+    static void Verify(string inputFile, string password)
+    {
+        try
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                using (FileStream inputFileStream = new FileStream(inputFile, FileMode.Open))
+                {
+                    byte[] salt = ReadBytes(inputFileStream);
+                    aesAlg.Key = GenerateKey(password, salt);
+                    aesAlg.IV = ReadBytes(inputFileStream);
+
+                    byte[] base64FileName = ReadBytes(inputFileStream);
+                    string fileName = Encoding.UTF8.GetString(Convert.FromBase64String(Encoding.UTF8.GetString(base64FileName)));
+
+                    try
+                    {
+                        using (CryptoStream cryptoStream = new CryptoStream(inputFileStream, aesAlg.CreateDecryptor(), CryptoStreamMode.Read))
+                        {
+                            cryptoStream.CopyTo(Stream.Null);
+                        }
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            Console.WriteLine($"[SUCCESS] '{inputFile}'");
+        }
+        catch
+        {
+            Console.WriteLine($"[FAIL]    '{inputFile}'");
         }
     }
 
